@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Soumyadip Graphic Design | Package Payment</title>
   <meta name="description" content="Pay securely for Soumyadip Graphic Design packages using UPI QR or direct UPI payment links." />
+  <meta name="keywords" content="Soumyadip graphic design payment, UPI payment, design package payment, banner design payment, logo design payment, premium graphic design India" />
   <link rel="icon" href="/favicon.png">
   <link rel="shortcut icon" href="/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,6 +18,21 @@
     <section class="hero-payment">
       <div class="animated-bg" aria-hidden="true">
         <div class="particle-field payment-particles" data-payment-particles></div>
+        <div class="nature-sky"></div>
+        <span class="nature-horizon"></span>
+        <span class="nature-ray nature-ray-one"></span>
+        <span class="nature-ray nature-ray-two"></span>
+        <span class="nature-ray nature-ray-three"></span>
+        <span class="nature-leaf leaf-one"></span>
+        <span class="nature-leaf leaf-two"></span>
+        <span class="nature-leaf leaf-three"></span>
+        <span class="nature-leaf leaf-four"></span>
+        <span class="payment-flower payment-flower-one"><i></i></span>
+        <span class="payment-flower payment-flower-two"><i></i></span>
+        <span class="payment-flower payment-flower-three"><i></i></span>
+        <span class="payment-bird payment-bird-one"></span>
+        <span class="payment-bird payment-bird-two"></span>
+        <span class="payment-bird payment-bird-three"></span>
         <span class="gold-line line-one"></span>
         <span class="gold-line line-two"></span>
         <span class="gold-line line-three"></span>
@@ -42,6 +58,11 @@
           <p class="eyebrow">Secure UPI Payment</p>
           <h1>Pay for your graphic design package in seconds.</h1>
           <p>Choose your package and tap Pay Now. The QR code, UPI ID, and direct UPI payment option will appear only after selecting a package.</p>
+          <div class="hero-trust-strip payment-trust-strip" aria-label="Trust highlights">
+            <span>4.9 rating</span>
+            <span>100+ happy clients</span>
+            <span id="slotsLeftPayment">Only 4 slots left today</span>
+          </div>
           <div class="saved-order-card" id="savedOrderCard" hidden>
             <span>Latest Order</span>
             <strong id="savedOrderTitle">No active order</strong>
@@ -49,9 +70,9 @@
             <button class="btn btn-primary shine" id="payLatestOrder" type="button">Pay Latest Order</button>
           </div>
           <div class="trust-row">
-            <span>Package-wise payment option</span>
-            <span>Instant booking confirmation</span>
-            <span>Premium design service</span>
+            <span>Trusted by 100+ clients</span>
+            <span>Fast delivery</span>
+            <span>Premium quality guarantee</span>
           </div>
         </div>
 
@@ -146,6 +167,18 @@
       <span>WhatsApp delivery</span>
     </section>
 
+    <section class="order-tracking-section reveal" aria-label="Order tracking">
+      <div>
+        <p class="eyebrow">Order Tracking</p>
+        <h2>Find your saved order.</h2>
+      </div>
+      <form class="tracking-form" data-order-tracking-form>
+        <input type="text" name="orderId" placeholder="Enter Order ID" aria-label="Enter Order ID" required />
+        <button class="btn btn-primary shine" type="submit">Track Order</button>
+      </form>
+      <div class="tracking-result" data-tracking-result>Enter your Order ID to see stored order details.</div>
+    </section>
+
     <section class="contact-section reveal">
       <div>
         <p class="eyebrow">Need Help?</p>
@@ -192,6 +225,7 @@
           </div>
           <a class="btn btn-primary shine" id="directUpiLink" href="#">Open UPI App</a>
           <a class="btn btn-soft" id="modalWhatsAppLink" href="#">After payment, send screenshot</a>
+          <p class="payment-fallback">If payment fails, try smaller amount or scan QR</p>
         </div>
 
         <div class="modal-qr">

@@ -3,6 +3,8 @@ const payeeName = "Soumyadip Bhukta";
 const screenshotWhatsApp = "917865007219";
 const latestOrderKey = "soumyadipGraphicsLatestOrder";
 const allOrdersKey = "soumyadipGraphicsOrders";
+const reviewsKey = "soumyadipGraphicsReviews";
+const reviewPopupKey = "soumyadipGraphicsReviewPopupSeen";
 
 const state = {
   selectedService: "",
@@ -43,13 +45,28 @@ function qsa(selector, parent = document) {
   return [...parent.querySelectorAll(selector)];
 }
 
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[character]));
+}
+
 function formatAmount(amount) {
   const numericAmount = Number(amount);
-  if (!numericAmount) {
+  if (numericAmount <= 0) {
     return "Quote Required";
   }
 
   return `Rs ${numericAmount.toLocaleString("en-IN")}`;
+}
+
+function normalizeAmount(amount) {
+  const numericAmount = Number(amount);
+  return Number.isFinite(numericAmount) && numericAmount > 0 ? String(numericAmount) : "1";
 }
 
 function makeOrderId() {
@@ -63,6 +80,14 @@ function readLatestOrder() {
     return JSON.parse(localStorage.getItem(latestOrderKey) || "null");
   } catch (error) {
     return null;
+  }
+}
+
+function readOrders() {
+  try {
+    return JSON.parse(localStorage.getItem(allOrdersKey) || "[]");
+  } catch (error) {
+    return [];
   }
 }
 
@@ -80,18 +105,12 @@ function saveOrder(order) {
 }
 
 function makePaymentLink(label, amount, orderId = "") {
-  const params = new URLSearchParams({
-    pa: upiId,
-    pn: payeeName,
-    cu: "INR",
-    tn: orderId ? `${orderId} - ${label}` : label,
-  });
+  const upi = "7865007219@kotak811";
+  const name = encodeURIComponent("Soumyadip Bhukta");
+  const safeAmount = normalizeAmount(amount);
+  const note = encodeURIComponent(orderId ? `${orderId} - ${label}` : label);
 
-  if (Number(amount) > 0) {
-    params.set("am", amount);
-  }
-
-  return `upi://pay?${params.toString()}`;
+  return `upi://pay?pa=${upi}&pn=${name}&am=${safeAmount}&cu=INR&tn=${note}`;
 }
 
 function makeWhatsAppLink(order) {
@@ -103,6 +122,29 @@ function makeWhatsAppLink(order) {
     `Service: ${order.service}`,
     `Amount: ${formatAmount(order.amount)}`,
     `Details: ${order.details || "Payment screenshot attached."}`,
+  ].join("\n");
+
+  return `https://wa.me/${screenshotWhatsApp}?text=${encodeURIComponent(text)}`;
+}
+
+function makePreOrderWhatsAppLink(service, amount) {
+  const text = [
+    "Hello, I want to order a design.",
+    `Service: ${service}`,
+    `Amount: ${formatAmount(amount)}`,
+    "Please confirm availability and next steps.",
+  ].join("\n");
+
+  return `https://wa.me/${screenshotWhatsApp}?text=${encodeURIComponent(text)}`;
+}
+
+function makePaymentConfirmationLink(order) {
+  const text = [
+    "Payment completed",
+    `Order ID: ${order.orderId || "Not generated"}`,
+    `Service: ${order.service}`,
+    `Amount: ${formatAmount(order.amount)}`,
+    "I am sending the payment screenshot now.",
   ].join("\n");
 
   return `https://wa.me/${screenshotWhatsApp}?text=${encodeURIComponent(text)}`;
@@ -165,6 +207,7 @@ function initParticles() {
   createParticles(qs("[data-particles]"), 58);
   createParticles(qs("[data-particles-deep]"), 36, "magic-particle deep-particle");
   createParticles(qs("[data-payment-particles]"), 38, "magic-particle payment-particle");
+  createParticles(qs("[data-main-nature-particles]"), 48, "main-nature-particle");
 }
 
 function initLightbox() {
@@ -235,7 +278,8 @@ function updatePaymentModal(order) {
   selectedPackage.textContent = order.service;
   selectedAmount.textContent = formatAmount(order.amount);
   directUpiLink.href = makePaymentLink(order.service, order.amount, order.orderId);
-  modalWhatsAppLink.href = makeWhatsAppLink(order);
+  modalWhatsAppLink.href = makePaymentConfirmationLink(order);
+  directUpiLink.dataset.confirmationLink = makePaymentConfirmationLink(order);
 
   if (selectedOrderId) {
     selectedOrderId.textContent = order.orderId || "Direct Package";
@@ -277,13 +321,21 @@ function initPaymentButtons() {
         name: "Package Client",
         phone: "",
         service: button.dataset.package,
-        amount: button.dataset.amount,
+        amount: normalizeAmount(button.dataset.amount),
         details: "Monthly package order",
         createdAt: new Date().toISOString(),
       };
       saveOrder(order);
+      window.open(makeWhatsAppLink(order), "_blank", "noopener");
       openPaymentModal(order);
     });
+  });
+
+  qs("#directUpiLink")?.addEventListener("click", (event) => {
+    const confirmationLink = event.currentTarget.dataset.confirmationLink;
+    if (confirmationLink) {
+      window.open(confirmationLink, "_blank", "noopener");
+    }
   });
 
   qsa("[data-close-payment]").forEach((button) => {
@@ -315,8 +367,9 @@ function initOrderModal() {
   qsa(".order-trigger").forEach((button) => {
     button.addEventListener("click", () => {
       state.selectedService = button.dataset.service;
-      state.selectedAmount = button.dataset.amount;
+      state.selectedAmount = normalizeAmount(button.dataset.amount);
       state.selectedDisplay = formatAmount(button.dataset.amount);
+      window.open(makePreOrderWhatsAppLink(state.selectedService, state.selectedAmount), "_blank", "noopener");
 
       if (selectedService) {
         selectedService.textContent = `${state.selectedService} - ${state.selectedDisplay}`;
@@ -344,7 +397,7 @@ function initOrderModal() {
         name: formData.get("name").trim(),
         phone: formData.get("phone").trim(),
         service: state.selectedService,
-        amount: state.selectedAmount,
+        amount: normalizeAmount(state.selectedAmount),
         details: formData.get("details").trim(),
         createdAt: new Date().toISOString(),
       };
@@ -360,6 +413,129 @@ function initOrderModal() {
     if (event.key === "Escape" && orderModal && orderModal.classList.contains("active")) {
       closeOrderModal();
     }
+  });
+}
+
+function initUrgencySlots() {
+  const slots = Math.floor(Math.random() * 5) + 2;
+  qsa("#slotsLeftMain, #slotsLeftPayment").forEach((item) => {
+    item.textContent = `Only ${slots} slots left today`;
+  });
+}
+
+function initOrderTracking() {
+  const form = qs("[data-order-tracking-form]");
+  const result = qs("[data-tracking-result]");
+
+  if (!form || !result) {
+    return;
+  }
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const orderId = new FormData(form).get("orderId").trim().toUpperCase();
+    const order = readOrders().find((item) => String(item.orderId).toUpperCase() === orderId);
+
+    if (!order) {
+      result.textContent = "No saved order found on this device. Please check the Order ID or contact on WhatsApp.";
+      result.classList.remove("found");
+      return;
+    }
+
+    result.innerHTML = `
+      <strong>${order.service} - ${formatAmount(order.amount)}</strong>
+      <span>Order ID: ${order.orderId}</span>
+      <span>Client: ${order.name || "Client"}</span>
+      <span>Status: Payment / WhatsApp confirmation pending</span>
+    `;
+    result.classList.add("found");
+  });
+}
+
+function initReviewSystem() {
+  const popup = qs("[data-review-popup]");
+  const closeButton = qs("[data-close-review]");
+  const saveButton = qs("[data-save-review]");
+  const reviewText = qs("[data-review-text]");
+  const starButtons = qsa("[data-rating]");
+  const track = qs("[data-review-track]");
+  let selectedRating = 5;
+
+  function closePopup() {
+    if (!popup) {
+      return;
+    }
+
+    popup.classList.remove("active");
+    popup.setAttribute("aria-hidden", "true");
+    localStorage.setItem(reviewPopupKey, "true");
+  }
+
+  function renderStoredReviews() {
+    if (!track) {
+      return;
+    }
+
+    let reviews = [];
+    try {
+      reviews = JSON.parse(localStorage.getItem(reviewsKey) || "[]");
+    } catch (error) {
+      reviews = [];
+    }
+
+    reviews.slice(0, 4).forEach((review) => {
+      const card = document.createElement("article");
+      card.className = "review-card";
+      card.innerHTML = `
+        <strong>Client Review</strong>
+        <p>${escapeHtml(review.text)}</p>
+        <span>${"★".repeat(review.rating)}</span>
+      `;
+      track.appendChild(card);
+    });
+
+    [...track.children].forEach((card) => {
+      const clone = card.cloneNode(true);
+      clone.setAttribute("aria-hidden", "true");
+      track.appendChild(clone);
+    });
+  }
+
+  renderStoredReviews();
+
+  if (!popup) {
+    return;
+  }
+
+  starButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      selectedRating = Number(button.dataset.rating);
+      starButtons.forEach((item) => item.classList.toggle("active", Number(item.dataset.rating) <= selectedRating));
+    });
+    button.classList.toggle("active", Number(button.dataset.rating) <= selectedRating);
+  });
+
+  if (!localStorage.getItem(reviewPopupKey)) {
+    window.setTimeout(() => {
+      popup.classList.add("active");
+      popup.setAttribute("aria-hidden", "false");
+    }, 8000);
+  }
+
+  closeButton?.addEventListener("click", closePopup);
+
+  saveButton?.addEventListener("click", () => {
+    const text = reviewText?.value.trim() || "Premium service and smooth delivery.";
+    let reviews = [];
+    try {
+      reviews = JSON.parse(localStorage.getItem(reviewsKey) || "[]");
+    } catch (error) {
+      reviews = [];
+    }
+
+    reviews.unshift({ rating: selectedRating, text, createdAt: new Date().toISOString() });
+    localStorage.setItem(reviewsKey, JSON.stringify(reviews.slice(0, 12)));
+    closePopup();
   });
 }
 
@@ -480,8 +656,18 @@ function initTiltCards() {
 
 function initParallax() {
   const hero = qs(".portfolio-hero picture img") || qs(".landing-logo");
-  if (!hero || window.matchMedia("(max-width: 680px)").matches) {
+  const paymentHero = qs(".hero-payment");
+  const mainNature = qs(".main-nature-bg");
+  if ((!hero && !paymentHero && !mainNature) || window.matchMedia("(max-width: 680px)").matches) {
     return;
+  }
+
+  let scrollTicking = false;
+
+  function updateScrollDepth() {
+    const scrollDepth = Math.min(window.scrollY / Math.max(window.innerHeight, 1), 2);
+    document.documentElement.style.setProperty("--main-scroll-depth", `${scrollDepth * -18}px`);
+    scrollTicking = false;
   }
 
   window.addEventListener("pointermove", (event) => {
@@ -489,7 +675,20 @@ function initParallax() {
     const y = (event.clientY / window.innerHeight - 0.5) * 12;
     document.documentElement.style.setProperty("--parallax-x", `${x}px`);
     document.documentElement.style.setProperty("--parallax-y", `${y}px`);
+    document.documentElement.style.setProperty("--nature-x", `${x * -0.6}px`);
+    document.documentElement.style.setProperty("--nature-y", `${y * -0.45}px`);
+    document.documentElement.style.setProperty("--main-nature-x", `${x * -0.75}px`);
+    document.documentElement.style.setProperty("--main-nature-y", `calc(${y * -0.55}px + var(--main-scroll-depth, 0px))`);
   });
+
+  window.addEventListener("scroll", () => {
+    if (!scrollTicking) {
+      scrollTicking = true;
+      requestAnimationFrame(updateScrollDepth);
+    }
+  }, { passive: true });
+
+  updateScrollDepth();
 }
 
 initPageLoader();
@@ -504,3 +703,6 @@ initButtonRipples();
 initCursorGlow();
 initTiltCards();
 initParallax();
+initUrgencySlots();
+initOrderTracking();
+initReviewSystem();
